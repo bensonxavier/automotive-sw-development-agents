@@ -5,39 +5,128 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Automotive SW Agents</title>
     <style>
+      :root {
+        --bg: #07111b;
+        --panel: #111827;
+        --panel-2: #162132;
+        --border: #2f3e52;
+        --text: #f3f7fb;
+        --muted: #9cb0c5;
+        --accent: #2dd4bf;
+        --accent-2: #60a5fa;
+      }
+      * { box-sizing: border-box; }
       body {
         margin: 0;
         font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        background: #0d1117;
-        color: #e6edf3;
+        background: linear-gradient(135deg, var(--bg), #0f172a);
+        color: var(--text);
         min-height: 100vh;
+      }
+      .shell {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 48px 24px 80px;
+      }
+      .hero {
+        background: rgba(17, 24, 39, 0.92);
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        padding: 40px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.28);
+      }
+      .eyebrow {
+        color: var(--accent);
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        font-size: 0.78rem;
+        font-weight: 700;
+        margin-bottom: 12px;
+      }
+      h1 {
+        font-size: clamp(2rem, 4vw, 3rem);
+        margin: 0 0 14px;
+      }
+      .lead {
+        font-size: 1.04rem;
+        line-height: 1.7;
+        color: var(--muted);
+        max-width: 760px;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 24px;
+      }
+      .btn {
+        display: inline-block;
+        padding: 12px 16px;
+        border-radius: 999px;
+        font-weight: 700;
+        text-decoration: none;
+        border: 1px solid transparent;
+      }
+      .btn-primary {
+        background: var(--accent);
+        color: #06201e;
+      }
+      .btn-secondary {
+        color: var(--text);
+        border-color: var(--border);
+        background: var(--panel-2);
+      }
+      .grid {
         display: grid;
-        place-items: center;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+        margin-top: 28px;
       }
       .card {
-        max-width: 720px;
-        padding: 32px;
-        border: 1px solid #30363d;
+        background: var(--panel);
+        border: 1px solid var(--border);
         border-radius: 16px;
-        background: #161b22;
-        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.25);
+        padding: 20px;
       }
-      a {
-        color: #2dd4bf;
-        text-decoration: none;
+      .card h2 {
+        margin-top: 0;
+        font-size: 1.05rem;
       }
-      a:hover {
-        text-decoration: underline;
+      .card p {
+        color: var(--muted);
+        line-height: 1.6;
+        margin-bottom: 0;
+      }
+      @media (max-width: 760px) {
+        .grid { grid-template-columns: 1fr; }
+        .hero { padding: 24px; }
       }
     </style>
   </head>
   <body>
-    <div class="card">
-      <h1>Automotive SW Agents</h1>
-      <p>This GitHub Pages site hosts the agentic workflow documentation and visual views for the automotive software engineering repository.</p>
-      <p>
-        <a href="./requirements-to-userstories/">Open the Requirements-to-Userstories workflow view</a>
-      </p>
+    <div class="shell">
+      <section class="hero">
+        <div class="eyebrow">Automotive SW Agents</div>
+        <h1>Agentic workflows for automotive software engineering</h1>
+        <p class="lead">
+          This site presents a structured view of the requirements-to-userstories workflow and related engineering workstreams.
+          It is designed to showcase agent-based reasoning, traceability, and adaptable automotive software practices.
+        </p>
+        <div class="actions">
+          <a class="btn btn-primary" href="./requirements-to-userstories/">Open workflow view</a>
+          <a class="btn btn-secondary" href="https://github.com/bensonxavier/automotive-sw-development-agents">View repository</a>
+        </div>
+        <div class="grid">
+          <div class="card">
+            <h2>Requirements workflow</h2>
+            <p>Explore the end-to-end pipeline from stakeholder requirements to feature derivation and backlog refinement.</p>
+          </div>
+          <div class="card">
+            <h2>Automotive alignment</h2>
+            <p>The design emphasizes standards-aware review, traceability, and adaptivity to organization-specific tools and rules.</p>
+          </div>
+        </div>
+      </section>
     </div>
   </body>
 </html>
