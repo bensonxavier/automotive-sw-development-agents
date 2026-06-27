@@ -21,6 +21,7 @@ Each area is intended to host an agentic workflow that follows automotive softwa
 - [sw-unit-construction](sw-unit-construction) — unit construction and implementation support
 - [sw-unittest-coverage](sw-unittest-coverage) — unit test coverage and quality analysis
 - [requirements-to-userstories](requirements-to-userstories) — a related workflow for converting requirements into user stories and backlog artifacts
+- [Open the requirements workflow view](https://bensonxavier.github.io/automotive-sw-development-agents/requirements-to-userstories/) — GitHub Pages view of the HTML workflow page
 
 ## Intended use
 This repository is intended to support:
