@@ -1,0 +1,19 @@
+# Environment
+.env
+config/active.yaml
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+.venv/
+.mypy_cache/
+
+# Outputs
+outputs/
+*.log
+
+# IDE
+.vscode/
+.idea/
