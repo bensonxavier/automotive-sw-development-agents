@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Agentic Requirements Framework</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+      body {
+        margin: 0;
+        background: #0d1117;
+        color: #e6edf3;
+        font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      #root {
+        min-height: 100vh;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+      const { useState } = React;
+
+      const PALETTE = {
+        bg: "#0D1117",
+        surface: "#161B22",
+        surfaceAlt: "#1C2330",
+        border: "#30363D",
+        accent: "#2DD4BF",
+        accentDim: "#134E4A",
+        accentWarm: "#F59E0B",
+        accentRed: "#F87171",
+        accentPurple: "#A78BFA",
+        text: "#E6EDF3",
+        textMuted: "#8B949E",
+        textDim: "#484F58",
+        green: "#3FB950",
+      };
+
+      const TABS = ["Architecture", "Agent Roles", "Token Strategy", "Tool Adapters", "RAG Design", "Config Schema"];
+
+      const stages = [
+        {
+          id: "S0",
+          label: "Ingestion & RAG Prep",
+          color: PALETTE.accentPurple,
+          desc: "Pull raw inputs: DoorsNG exports (ReqIF/CSV/PDF), Confluence pages, Jira epics. Chunk, embed, index. Gate: index health check.",
+          agents: ["Ingestion Agent", "RAG Index Agent"],
+          inputs: ["DoorsNG ReqIF/PDF", "Confluence pages", "Jira epics/stories", "New req PDFs"],
+          outputs: ["Vector index", "Structured req JSON", "Traceability seed map"],
+          tokens: "Low — chunking + metadata only",
+        },
+        {
+          id: "S1",
+          label: "Stakeholder Req Analysis",
+          color: PALETTE.accent,
+          desc: "Parse raw stakeholder requirements, classify them (functional/non-functional/constraint), detect ambiguity, conflicts, and gaps.",
+          agents: ["SR Analyst Agent", "SR Reviewer Agent"],
+          inputs: ["Stakeholder req docs", "RAG: existing system reqs", "Domain glossary"],
+          outputs: ["Classified SR list", "Ambiguity/conflict flags", "Coverage gap report"],
+          tokens: "Medium — per-req classification + RAG retrieval",
+        },
+        {
+          id: "S2",
+          label: "Feature Derivation",
+          color: PALETTE.accentWarm,
+          desc: "Derive features from SRs. One SR may spawn multiple features. Features are atomic, testable, and traceable to parent SRs.",
+          agents: ["Feature Derivation Agent", "Feature Review Agent"],
+          inputs: ["Classified SR list", "RAG: existing features", "Architecture constraints"],
+          outputs: ["Feature list with SR links", "Feature dependency graph", "Review scorecard"],
+          tokens: "Medium-High — reasoning over SR clusters",
+        },
+        {
+          id: "S3",
+          label: "Backlog Refinement",
+          color: "#60A5FA",
+          desc: "Decompose features into Jira-ready user stories, acceptance criteria, story points, and labels. Link to Confluence specs.",
+          agents: ["Story Writer Agent", "Backlog Review Agent"],
+          inputs: ["Feature list", "DoE/HARA outputs (if safety)", "Team velocity data"],
+          outputs: ["Jira stories (draft)", "Confluence spec stubs", "Refinement report"],
+          tokens: "High — story + AC generation per feature",
+        },
+        {
+          id: "S4",
+          label: "Orchestrator Gate Review",
+          color: PALETTE.accentRed,
+          desc: "Cross-stage consistency check. Traceability matrix validation. Escalation decision. Human-in-the-loop trigger if confidence < threshold.",
+          agents: ["Orchestrator Agent", "Gate Review Agent"],
+          inputs: ["All stage outputs", "Traceability matrix", "Review scorecards"],
+          outputs: ["Go/No-Go decision", "Traceability matrix (final)", "HITL escalation list"],
+          tokens: "Low — structured diff + scoring only",
+        },
+      ];
+
+      const agentRoles = [
+        {
+          name: "Orchestrator Agent",
+          type: "Controller",
+          color: PALETTE.accentRed,
+          model: "Claude Sonnet 4.6 (full context)",
+          responsibility: "Manages stage sequencing, passes compressed context between stages, decides HITL escalation, enforces SLA on reviewer agents.",
+          context: "Carries only stage summaries + traceability index — never full document text.",
+          tools: ["Stage router", "HITL notifier", "Confidence scorer", "Audit logger"],
+        },
+        {
+          name: "Ingestion Agent",
+          type: "Worker",
+          color: PALETTE.accentPurple,
+          model: "Claude Haiku (batch)",
+          responsibility: "Reads ReqIF, CSV, PDF exports from DoorsNG. Normalises to internal JSON schema. Detects duplicates vs. existing index.",
+          context: "Single document at a time, no conversation history.",
+          tools: ["DoorsNG adapter", "PDF parser", "Chunker", "Embedder"],
+        },
+        {
+          name: "RAG Index Agent",
+          type: "Worker",
+          color: PALETTE.accentPurple,
+          model: "Embedding model (not LLM call)",
+          responsibility: "Builds and maintains vector index. Manages namespace separation: existing_reqs, new_reqs, features, stories, code_symbols.",
+          context: "No LLM token spend — embedding pipeline only.",
+          tools: ["Vector DB write", "Metadata tagger", "Dedup filter"],
+        },
+        {
+          name: "SR Analyst Agent",
+          type: "Worker",
+          color: PALETTE.accent,
+          model: "Claude Sonnet 4.6",
+          responsibility: "Classifies each SR, detects ambiguity ('shall' vs 'should'), flags conflicts with existing DoorsNG requirements via RAG lookup.",
+          context: "Sliding window: current SR batch (≤20) + top-5 RAG hits per SR.",
+          tools: ["RAG retriever", "DoorsNG read adapter", "Conflict classifier"],
+        },
+        {
+          name: "SR Reviewer Agent",
+          type: "Reviewer",
+          color: PALETTE.accentWarm,
+          model: "Claude Sonnet 4.6 (separate instance)",
+          responsibility: "Independently reviews SR Analyst output. Scores completeness, ISO 26262 / SOTIF alignment if safety domain. Generates structured review report.",
+          context: "Analyst output JSON + rubric — no raw docs.",
+          tools: ["Rubric evaluator", "Safety domain checker", "Score aggregator"],
+        },
+        {
+          name: "Feature Derivation Agent",
+          type: "Worker",
+          color: PALETTE.accentWarm,
+          model: "Claude Sonnet 4.6",
+          responsibility: "Groups related SRs, derives feature statements, assigns MoSCoW priority, generates traceability links SR→Feature.",
+          context: "SR cluster (≤15 SRs) + existing feature RAG. Stateless per cluster.",
+          tools: ["RAG retriever", "MoSCoW classifier", "Traceability writer"],
+        },
+        {
+          name: "Feature Review Agent",
+          type: "Reviewer",
+          color: PALETTE.accentWarm,
+          model: "Claude Sonnet 4.6 (separate instance)",
+          responsibility: "Checks feature atomicity, testability, duplicate coverage vs. existing feature index. Returns pass/rework/reject per feature.",
+          context: "Feature batch JSON + existing feature RAG (top-3 per feature).",
+          tools: ["Atomicity scorer", "Testability checker", "Duplicate detector"],
+        },
+        {
+          name: "Story Writer Agent",
+          type: "Worker",
+          color: "#60A5FA",
+          model: "Claude Sonnet 4.6",
+          responsibility: "Writes user stories (As a / I want / So that), acceptance criteria (Given/When/Then), story point estimate, Jira labels, Confluence spec stub.",
+          context: "Feature JSON + team context snippet (velocity, DoD). No source code.",
+          tools: ["Jira write adapter", "Confluence write adapter", "Story template engine"],
+        },
+        {
+          name: "Backlog Review Agent",
+          type: "Reviewer",
+          color: "#60A5FA",
+          model: "Claude Sonnet 4.6 (separate instance)",
+          responsibility: "Validates INVEST criteria, checks AC completeness, verifies Jira field completeness, flags missing DoorsNG links.",
+          context: "Story batch JSON + review rubric.",
+          tools: ["INVEST scorer", "Jira field validator", "Traceability checker"],
+        },
+      ];
+
+      const tokenStrategies = [
+        {
+          title: "Stage-Scoped Context Windows",
+          icon: "⬜",
+          detail: "Each agent receives only the output of the immediately preceding stage, compressed to a structured JSON summary. Raw documents never leave the ingestion stage.",
+          saving: "60–70% vs. naive full-doc passing",
+        },
+        {
+          title: "Selective RAG — Top-K Gating",
+          icon: "🔍",
+          detail: "RAG retrieval is gated: SR Analyst gets top-5 chunks per SR, Feature Agent gets top-3, Story Writer gets top-2. Reviewer agents get NO RAG — only prior-stage outputs.",
+          saving: "Prevents retrieval bloat in review loops",
+        },
+        {
+          title: "Haiku for Ingestion, Sonnet for Reasoning",
+          icon: "⚡",
+          detail: "Ingestion, chunking classification, and metadata tagging use Haiku (batch). Analyst, derivation, and story writing use Sonnet. Reviewers use Sonnet but with minimal context.",
+          saving: "~40% cost reduction on ingestion volume",
+        },
+        {
+          title: "Reviewer Agents as Judges (No Raw Docs)",
+          icon: "⚖️",
+          detail: "Reviewer agents never receive raw stakeholder docs or PDFs. They receive only structured JSON (agent output) + a scoring rubric. This hard-caps reviewer token spend.",
+          saving: "Reviewer context capped at ~2K tokens per item",
+        },
+        {
+          title: "Orchestrator Carries Summaries Only",
+          icon: "🧠",
+          detail: "The Orchestrator Agent maintains a traceability index (IDs + status + confidence scores) and stage summaries. It never holds full story text or requirement text.",
+          saving: "Orchestrator context stays under 8K regardless of project size",
+        },
+        {
+          title: "Batch Processing with Sliding Windows",
+          icon: "📦",
+          detail: "SRs are processed in batches of 20, features in batches of 15, stories in batches of 10. Agents are stateless per batch; Orchestrator accumulates results.",
+          saving: "Linear scaling — cost proportional to item count, not doc size",
+        },
+      ];
+
+      const toolAdapters = [
+        {
+          tool: "Jira",
+          type: "Read/Write",
+          color: "#2563EB",
+          ops: ["Read epics/stories/sprints", "Write draft stories", "Update fields (SR link, feature ID)", "Transition status (Draft→Review)"],
+          adapter: "REST API adapter — OAuth2. Reads via JQL. Writes via /issue POST. Traceability via custom fields.",
+          optional: false,
+        },
+        {
+          tool: "Confluence",
+          type: "Read/Write",
+          color: "#1D4ED8",
+          ops: ["Read existing spec pages", "Write feature spec stubs", "Append to design decision logs", "Link to Jira issues"],
+          adapter: "REST API adapter. Page content chunked for RAG. Spec stubs created from Mustache templates.",
+          optional: false,
+        },
+        {
+          tool: "DoorsNG",
+          type: "Read",
+          color: "#7C3AED",
+          ops: ["Export ReqIF / CSV", "Read existing requirements", "Read traceability links", "Read attribute metadata (ASIL, status)"],
+          adapter: "ReqIF parser → JSON normaliser. Read-only. No write-back in v1 (configurable). Attribute mapping: ASIL→safety_level, status→req_state.",
+          optional: false,
+        },
+        {
+          tool: "GitHub / GitLab",
+          type: "Read",
+          color: PALETTE.textMuted,
+          ops: ["Read file tree (symbols only)", "Read README / API contracts", "Grep for function/class names", "No full-file ingestion"],
+          adapter: "Optional code symbol adapter. Tree-sitter parse → symbol index. Fed to RAG namespace: code_symbols. Never passes full source to LLM.",
+          optional: true,
+        },
+        {
+          tool: "PDF / Static Docs",
+          type: "Read",
+          color: PALETTE.accentRed,
+          ops: ["Parse new req PDFs", "Parse standards excerpts", "Extract tables/figures"],
+          adapter: "PyMuPDF → text chunks → embeddings → RAG namespace: new_reqs. Figures get alt-text via vision model (optional).",
+          optional: false,
+        },
+        {
+          tool: "Vector DB",
+          type: "Read/Write",
+          color: PALETTE.green,
+          ops: ["Namespace-scoped retrieval", "Similarity search", "Metadata filter (domain, version, ASIL)", "Dedup by content hash"],
+          adapter: "Pluggable: Pinecone / Qdrant / pgvector. Namespaces: existing_reqs | new_reqs | features | stories | code_symbols.",
+          optional: false,
+        },
+      ];
+
+      const ragNamespaces = [
+        { ns: "existing_reqs", source: "DoorsNG export", updated: "On demand / scheduled", use: "SR conflict detection, coverage gap analysis" },
+        { ns: "new_reqs", source: "PDF / uploaded docs", updated: "Per ingestion run", use: "Primary SR analysis input" },
+        { ns: "features", source: "Feature Derivation Agent output", updated: "Per stage run", use: "Duplicate feature detection" },
+        { ns: "stories", source: "Story Writer Agent output", updated: "Per stage run", use: "Duplicate story detection, INVEST check" },
+        { ns: "code_symbols", source: "GitHub/GitLab tree (optional)", updated: "On demand", use: "Technical feasibility hints for story AC" },
+        { ns: "standards", source: "ISO 26262 / SOTIF / ASPICE PDFs (curated)", updated: "Versioned, manual", use: "Safety/quality attribute validation in reviewers" },
+      ];
+
+      const configSchema = `# Framework Config Schema (YAML)
+# Override any section per project or tool profile
+
+project:
+  id: "proj-001"
+  name: "ADAS Feature Backlog"
+  domain: "automotive_safety"
+  safety_standard: "iso26262"
+
+orchestrator:
+  model: "claude-sonnet-4-6"
+  confidence_threshold: 0.75
+  max_retries_per_stage: 2
+  audit_log: true
+
+stages:
+  s1_sr_analysis:
+    enabled: true
+    batch_size: 20
+    rag_top_k: 5
+    model: "claude-sonnet-4-6"
+    reviewer:
+      enabled: true
+      model: "claude-sonnet-4-6"
+      rubric: "rubrics/sr_review_iso26262.yaml"
+
+  s2_feature_derivation:
+    enabled: true
+    batch_size: 15
+    rag_top_k: 3
+    model: "claude-sonnet-4-6"
+    reviewer:
+      enabled: true
+      rubric: "rubrics/feature_review_default.yaml"
+
+  s3_backlog_refinement:
+    enabled: true
+    batch_size: 10
+    story_template: "templates/story_gherkin.md"
+    model: "claude-sonnet-4-6"
+    reviewer:
+      enabled: true
+      rubric: "rubrics/invest_check.yaml"
+    write_targets:
+      jira: true
+      confluence: true
+
+rag:
+  vector_db: "qdrant"
+  embedding_model: "text-embedding-3-small"
+  namespaces:
+    existing_reqs: { enabled: true }
+    new_reqs: { enabled: true }
+    features: { enabled: true }
+    stories: { enabled: true }
+    code_symbols: { enabled: false }
+    standards: { enabled: true, version: "iso26262_2018" }
+
+adapters:
+  jira:
+    enabled: true
+    base_url: "https://org.atlassian.net"
+    project_key: "ADAS"
+    custom_fields:
+      sr_link: "customfield_10042"
+      feature_id: "customfield_10043"
+      asil_level: "customfield_10044"
+
+  confluence:
+    enabled: true
+    space_key: "FEAT"
+    spec_template_id: "123456"
+
+  doors_ng:
+    enabled: true
+    export_format: "reqif"
+    attribute_map:
+      asil: "ASIL_Level"
+      status: "Req_Status"
+      owner: "Allocated_To"
+
+  github:
+    enabled: false
+    repo: "org/adas-platform"
+    symbol_only: true
+
+hitl:
+  channels:
+    - type: "email"
+      recipients: ["req-owner@org.com"]
+    - type: "jira_comment"
+      issue_type: "Review Task"
+  trigger_conditions:
+    - "confidence < threshold"
+    - "reviewer_score < 0.6"
+    - "conflict_detected == true"
+    - "asil_b_or_above AND reviewer_score < 0.85"
+`;
+
+      function Badge({ label, color }) {
+        return (
+          <span style={{
+            background: color + "22",
+            color,
+            border: `1px solid ${color}55`,
+            borderRadius: 4,
+            padding: "2px 8px",
+            fontSize: 11,
+            fontWeight: 600,
+            letterSpacing: "0.04em",
+          }}>{label}</span>
+        );
+      }
+
+      function SectionHeader({ title, sub }) {
+        return (
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ fontSize: 11, color: PALETTE.accent, letterSpacing: "0.12em", fontWeight: 700, textTransform: "uppercase", marginBottom: 4 }}>{sub}</div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: PALETTE.text }}>{title}</div>
+          </div>
+        );
+      }
+
+      function PipelineView() {
+        const [active, setActive] = useState(null);
+        const sel = active !== null ? stages[active] : null;
+
+        return (
+          <div>
+            <SectionHeader title="Agentic Pipeline Architecture" sub="End-to-End Flow" />
+            <div style={{ display: "flex", alignItems: "stretch", gap: 0, marginBottom: 32, overflowX: "auto", paddingBottom: 8 }}>
+              {stages.map((s, i) => (
+                <div key={s.id} style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
+                  <button
+                    onClick={() => setActive(active === i ? null : i)}
+                    style={{
+                      background: active === i ? s.color + "22" : PALETTE.surface,
+                      border: `2px solid ${active === i ? s.color : PALETTE.border}`,
+                      borderRadius: 10,
+                      padding: "14px 18px",
+                      cursor: "pointer",
+                      textAlign: "left",
+                      minWidth: 150,
+                      transition: "all 0.15s",
+                    }}
+                  >
+                    <div style={{ fontSize: 11, color: s.color, fontWeight: 700, marginBottom: 4 }}>{s.id}</div>
+                    <div style={{ fontSize: 13, color: PALETTE.text, fontWeight: 600, lineHeight: 1.3 }}>{s.label}</div>
+                    <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 4 }}>
+                      {s.agents.map((a) => (
+                        <span key={a} style={{ fontSize: 10, color: s.color, background: s.color + "15", borderRadius: 3, padding: "1px 5px" }}>{a}</span>
+                      ))}
+                    </div>
+                  </button>
+                  {i < stages.length - 1 && (
+                    <div style={{ display: "flex", alignItems: "center", padding: "0 4px" }}>
+                      <div style={{ width: 24, height: 2, background: PALETTE.border }} />
+                      <div style={{ width: 0, height: 0, borderTop: "6px solid transparent", borderBottom: "6px solid transparent", borderLeft: `8px solid ${PALETTE.border}` }} />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            {sel && (
+              <div style={{ background: sel.color + "0D", border: `1px solid ${sel.color}44`, borderRadius: 12, padding: 24 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+                  <span style={{ fontSize: 13, color: sel.color, fontWeight: 800 }}>{sel.id}</span>
+                  <span style={{ fontSize: 17, color: PALETTE.text, fontWeight: 700 }}>{sel.label}</span>
+                </div>
+                <p style={{ color: PALETTE.textMuted, fontSize: 14, marginBottom: 20, lineHeight: 1.6 }}>{sel.desc}</p>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
+                  <div>
+                    <div style={{ fontSize: 11, color: PALETTE.textMuted, fontWeight: 700, textTransform: "uppercase", marginBottom: 8, letterSpacing: "0.08em" }}>Inputs</div>
+                    {sel.inputs.map((x) => <div key={x} style={{ fontSize: 13, color: PALETTE.text, padding: "4px 0", borderBottom: `1px solid ${PALETTE.border}` }}>← {x}</div>)}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, color: PALETTE.textMuted, fontWeight: 700, textTransform: "uppercase", marginBottom: 8, letterSpacing: "0.08em" }}>Outputs</div>
+                    {sel.outputs.map((x) => <div key={x} style={{ fontSize: 13, color: PALETTE.text, padding: "4px 0", borderBottom: `1px solid ${PALETTE.border}` }}>→ {x}</div>)}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, color: PALETTE.textMuted, fontWeight: 700, textTransform: "uppercase", marginBottom: 8, letterSpacing: "0.08em" }}>Token Profile</div>
+                    <div style={{ fontSize: 13, color: sel.color, fontWeight: 600 }}>{sel.tokens}</div>
+                    <div style={{ marginTop: 16 }}>
+                      <div style={{ fontSize: 11, color: PALETTE.textMuted, fontWeight: 700, textTransform: "uppercase", marginBottom: 8, letterSpacing: "0.08em" }}>Agents</div>
+                      {sel.agents.map((a) => <div key={a} style={{ fontSize: 13, color: PALETTE.text, padding: "3px 0" }}>• {a}</div>)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div style={{ marginTop: 24, background: PALETTE.accentRed + "11", border: `1px solid ${PALETTE.accentRed}44`, borderRadius: 10, padding: 16, display: "flex", gap: 12, alignItems: "flex-start" }}>
+              <span style={{ fontSize: 18 }}>🔴</span>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: PALETTE.accentRed, marginBottom: 4 }}>Human-in-the-Loop Gate (HITL)</div>
+                <div style={{ fontSize: 13, color: PALETTE.textMuted, lineHeight: 1.6 }}>
+                  Triggered at Gate Review (S4) when: orchestrator confidence &lt; threshold, reviewer score &lt; 0.6, conflict detected, or ASIL-B/above item has marginal score.
+                  Escalation via Jira Review Task or email. Pipeline pauses; resumes on human approval.
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      function AgentsView() {
+        const [sel, setSel] = useState(0);
+        const a = agentRoles[sel];
+        const typeColor = { Controller: PALETTE.accentRed, Worker: PALETTE.accent, Reviewer: PALETTE.accentWarm };
+
+        return (
+          <div>
+            <SectionHeader title="Agent Roles & Responsibilities" sub="Agent Roster" />
+            <div style={{ display: "grid", gridTemplateColumns: "260px 1fr", gap: 20 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {agentRoles.map((a, i) => (
+                  <button key={a.name} onClick={() => setSel(i)} style={{
+                    background: sel === i ? a.color + "22" : PALETTE.surface,
+                    border: `1px solid ${sel === i ? a.color : PALETTE.border}`,
+                    borderRadius: 8, padding: "10px 14px", cursor: "pointer", textAlign: "left",
+                  }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: sel === i ? a.color : PALETTE.text }}>{a.name}</div>
+                    <div style={{ fontSize: 11, color: typeColor[a.type] || PALETTE.textMuted, marginTop: 2 }}>{a.type}</div>
+                  </button>
+                ))}
+              </div>
+              <div style={{ background: PALETTE.surface, border: `1px solid ${a.color}44`, borderRadius: 12, padding: 24 }}>
+                <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 16 }}>
+                  <Badge label={a.type} color={typeColor[a.type]} />
+                  <Badge label={a.model} color={PALETTE.textMuted} />
+                </div>
+                <div style={{ fontSize: 19, fontWeight: 700, color: a.color, marginBottom: 12 }}>{a.name}</div>
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ fontSize: 11, color: PALETTE.textMuted, fontWeight: 700, textTransform: "uppercase", marginBottom: 6, letterSpacing: "0.08em" }}>Responsibility</div>
+                  <div style={{ fontSize: 14, color: PALETTE.text, lineHeight: 1.7 }}>{a.responsibility}</div>
+                </div>
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ fontSize: 11, color: PALETTE.textMuted, fontWeight: 700, textTransform: "uppercase", marginBottom: 6, letterSpacing: "0.08em" }}>Context Strategy</div>
+                  <div style={{ fontSize: 14, color: PALETTE.textMuted, lineHeight: 1.6, fontStyle: "italic" }}>{a.context}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 11, color: PALETTE.textMuted, fontWeight: 700, textTransform: "uppercase", marginBottom: 8, letterSpacing: "0.08em" }}>Available Tools</div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {a.tools.map((t) => (
+                      <span key={t} style={{ fontSize: 12, background: a.color + "15", color: a.color, border: `1px solid ${a.color}33`, borderRadius: 4, padding: "3px 10px" }}>{t}</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      function TokenView() {
+        return (
+          <div>
+            <SectionHeader title="Token Efficiency Strategies" sub="Cost Architecture" />
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 28 }}>
+              {tokenStrategies.map((s) => (
+                <div key={s.title} style={{ background: PALETTE.surface, border: `1px solid ${PALETTE.border}`, borderRadius: 10, padding: 20 }}>
+                  <div style={{ fontSize: 22, marginBottom: 10 }}>{s.icon}</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: PALETTE.text, marginBottom: 8 }}>{s.title}</div>
+                  <div style={{ fontSize: 13, color: PALETTE.textMuted, lineHeight: 1.6, marginBottom: 12 }}>{s.detail}</div>
+                  <div style={{ fontSize: 12, color: PALETTE.green, fontWeight: 600 }}>✓ {s.saving}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ background: PALETTE.accentDim, border: `1px solid ${PALETTE.accent}44`, borderRadius: 10, padding: 20 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: PALETTE.accent, marginBottom: 12 }}>Token Budget Allocation (per 100 SRs, illustrative)</div>
+              {[
+                { label: "S0 Ingestion (Haiku batch)", pct: 5, color: PALETTE.accentPurple },
+                { label: "S1 SR Analysis (Sonnet × 5 batches)", pct: 25, color: PALETTE.accent },
+                { label: "S1 SR Reviewer (Sonnet, JSON-only)", pct: 8, color: PALETTE.accentWarm },
+                { label: "S2 Feature Derivation (Sonnet × batches)", pct: 28, color: PALETTE.accentWarm },
+                { label: "S2 Feature Reviewer", pct: 7, color: "#60A5FA" },
+                { label: "S3 Story Writing (Sonnet)", pct: 20, color: "#60A5FA" },
+                { label: "S3 Backlog Reviewer", pct: 5, color: PALETTE.green },
+                { label: "S4 Orchestrator + Gate Review", pct: 2, color: PALETTE.accentRed },
+              ].map((r) => (
+                <div key={r.label} style={{ marginBottom: 10 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                    <span style={{ fontSize: 12, color: PALETTE.textMuted }}>{r.label}</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: r.color }}>{r.pct}%</span>
+                  </div>
+                  <div style={{ height: 6, background: PALETTE.border, borderRadius: 3 }}>
+                    <div style={{ width: `${r.pct}%`, height: "100%", background: r.color, borderRadius: 3 }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      }
+
+      function AdaptersView() {
+        const [sel, setSel] = useState(0);
+        const t = toolAdapters[sel];
+
+        return (
+          <div>
+            <SectionHeader title="Tool Adapters" sub="Integration Layer" />
+            <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
+              {toolAdapters.map((t, i) => (
+                <button key={t.tool} onClick={() => setSel(i)} style={{
+                  background: sel === i ? t.color + "22" : PALETTE.surface,
+                  border: `1px solid ${sel === i ? t.color : PALETTE.border}`,
+                  borderRadius: 8, padding: "8px 16px", cursor: "pointer",
+                  color: sel === i ? t.color : PALETTE.textMuted, fontSize: 13, fontWeight: 600,
+                }}>
+                  {t.tool}
+                  {t.optional && <span style={{ fontSize: 10, marginLeft: 6, color: PALETTE.textMuted }}>opt</span>}
+                </button>
+              ))}
+            </div>
+            <div style={{ background: PALETTE.surface, border: `1px solid ${t.color}44`, borderRadius: 12, padding: 24 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+                <div style={{ fontSize: 20, fontWeight: 800, color: t.color }}>{t.tool}</div>
+                <Badge label={t.type} color={t.color} />
+                {t.optional && <Badge label="Optional" color={PALETTE.textMuted} />}
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+                <div>
+                  <div style={{ fontSize: 11, color: PALETTE.textMuted, fontWeight: 700, textTransform: "uppercase", marginBottom: 10, letterSpacing: "0.08em" }}>Operations</div>
+                  {t.ops.map((op) => (
+                    <div key={op} style={{ fontSize: 13, color: PALETTE.text, padding: "6px 0", borderBottom: `1px solid ${PALETTE.border}`, display: "flex", gap: 8, alignItems: "flex-start" }}>
+                      <span style={{ color: t.color, marginTop: 1 }}>▹</span>{op}
+                    </div>
+                  ))}
+                </div>
+                <div>
+                  <div style={{ fontSize: 11, color: PALETTE.textMuted, fontWeight: 700, textTransform: "uppercase", marginBottom: 10, letterSpacing: "0.08em" }}>Adapter Notes</div>
+                  <div style={{ fontSize: 13, color: PALETTE.textMuted, lineHeight: 1.7 }}>{t.adapter}</div>
+                </div>
+              </div>
+            </div>
+            <div style={{ marginTop: 20, background: PALETTE.surface, border: `1px solid ${PALETTE.border}`, borderRadius: 10, padding: 16 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: PALETTE.accent, marginBottom: 8 }}>Source Code Access — Symbol-Only Pattern</div>
+              <div style={{ fontSize: 13, color: PALETTE.textMuted, lineHeight: 1.6 }}>
+                Full source is never passed to the LLM. The GitHub/GitLab adapter uses <strong style={{ color: PALETTE.text }}>tree-sitter</strong> to extract a symbol index
+                (function names, class names, public API signatures) which is stored in the <code style={{ color: PALETTE.accent }}>code_symbols</code> RAG namespace.
+                The Story Writer Agent can retrieve top-2 symbol matches per feature for technical AC hints.
+                This caps code-related token spend to ~200 tokens per feature even on large codebases.
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      function RAGView() {
+        return (
+          <div>
+            <SectionHeader title="RAG Architecture" sub="Knowledge Layer" />
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 28 }}>
+              {ragNamespaces.map((n) => (
+                <div key={n.ns} style={{ background: PALETTE.surface, border: `1px solid ${PALETTE.border}`, borderRadius: 10, padding: 16 }}>
+                  <code style={{ fontSize: 12, color: PALETTE.accent, display: "block", marginBottom: 8 }}>{n.ns}</code>
+                  <div style={{ fontSize: 12, color: PALETTE.textMuted, marginBottom: 4 }}>
+                    <span style={{ color: PALETTE.text, fontWeight: 600 }}>Source:</span> {n.source}
+                  </div>
+                  <div style={{ fontSize: 12, color: PALETTE.textMuted, marginBottom: 8 }}>
+                    <span style={{ color: PALETTE.text, fontWeight: 600 }}>Updated:</span> {n.updated}
+                  </div>
+                  <div style={{ fontSize: 12, color: PALETTE.textMuted, lineHeight: 1.5 }}>
+                    <span style={{ color: PALETTE.text, fontWeight: 600 }}>Used for:</span> {n.use}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ background: PALETTE.surface, border: `1px solid ${PALETTE.border}`, borderRadius: 12, padding: 24, marginBottom: 20 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: PALETTE.text, marginBottom: 16 }}>Retrieval Strategy per Agent</div>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                <thead>
+                  <tr>
+                    {['Agent', 'Namespaces queried', 'Top-K', 'Filter'].map((h) => (
+                      <th key={h} style={{ color: PALETTE.textMuted, fontWeight: 700, textAlign: "left", padding: "8px 12px", borderBottom: `1px solid ${PALETTE.border}`, fontSize: 11, letterSpacing: "0.06em", textTransform: "uppercase" }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    ["SR Analyst", "existing_reqs, new_reqs", "5 per SR", "domain, status=active"],
+                    ["SR Reviewer", "—", "none", "receives output JSON only"],
+                    ["Feature Derivation", "existing_reqs, features", "3 per cluster", "version, asil_level"],
+                    ["Feature Reviewer", "features", "none", "receives output JSON only"],
+                    ["Story Writer", "features, code_symbols", "2 per feature", "optional: code_symbols"],
+                    ["Backlog Reviewer", "—", "none", "receives output JSON only"],
+                    ["Orchestrator", "—", "none", "carries ID index only"],
+                  ].map(([a, ns, k, f]) => (
+                    <tr key={a}>
+                      <td style={{ padding: "8px 12px", color: PALETTE.text, borderBottom: `1px solid ${PALETTE.border}` }}>{a}</td>
+                      <td style={{ padding: "8px 12px", color: PALETTE.accent, borderBottom: `1px solid ${PALETTE.border}` }}>{ns}</td>
+                      <td style={{ padding: "8px 12px", color: PALETTE.accentWarm, borderBottom: `1px solid ${PALETTE.border}` }}>{k}</td>
+                      <td style={{ padding: "8px 12px", color: PALETTE.textMuted, borderBottom: `1px solid ${PALETTE.border}` }}>{f}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div style={{ background: PALETTE.accentDim, border: `1px solid ${PALETTE.accent}44`, borderRadius: 10, padding: 16 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: PALETTE.accent, marginBottom: 8 }}>DoorsNG ReqIF → RAG Pipeline</div>
+              <div style={{ fontSize: 13, color: PALETTE.textMuted, lineHeight: 1.7 }}>
+                DoorsNG export (ReqIF XML or CSV) → <strong style={{ color: PALETTE.text }}>ReqIF parser</strong> → normalised JSON (id, text, asil, status, links) →
+                chunk by requirement unit → embed → upsert to <code style={{ color: PALETTE.accent }}>existing_reqs</code> namespace with attribute metadata as filters.
+                New req PDFs follow the same path into <code style={{ color: PALETTE.accent }}>new_reqs</code>.
+                Both namespaces version-tagged; old versions soft-deleted on re-export.
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      function ConfigView() {
+        return (
+          <div>
+            <SectionHeader title="Configuration Schema" sub="Adaptability Layer" />
+            <div style={{ background: PALETTE.surface, border: `1px solid ${PALETTE.border}`, borderRadius: 10, padding: 4, marginBottom: 20 }}>
+              <pre style={{ fontSize: 12, color: PALETTE.text, lineHeight: 1.7, padding: 20, margin: 0, overflowX: "auto", fontFamily: "'JetBrains Mono', 'Fira Code', monospace" }}>
+                <code>{configSchema}</code>
+              </pre>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+              {[
+                { title: "Project Profiles", desc: "Switch domain (automotive_safety, embedded, general) to load pre-built rubric sets and attribute maps. One YAML override per project." },
+                { title: "Stage Enable/Disable", desc: "Any stage can be disabled. For pure SR→Feature runs (no backlog), disable s3. For backlog-only (features pre-existing), disable s1+s2." },
+                { title: "Rubric Injection", desc: "Reviewer rubrics are external YAML files — swap rubric path per stage to adapt to ISO 26262, ASPICE, AIAG-VDA, or custom quality gates." },
+                { title: "Tool Adapter Toggles", desc: "Each adapter (Jira, Confluence, DoorsNG, GitHub) has an enabled flag and config block. Add new adapters without touching core orchestration logic." },
+                { title: "RAG Namespace Control", desc: "Enable/disable namespaces per project. code_symbols off by default; flip true when repo adapter is configured. standards namespace is versioned." },
+                { title: "HITL Thresholds", desc: "confidence_threshold and reviewer_score cutoffs are configurable per stage or globally. Safety domains can set higher bars for ASIL-B/C/D items." },
+              ].map((c) => (
+                <div key={c.title} style={{ background: PALETTE.surfaceAlt, border: `1px solid ${PALETTE.border}`, borderRadius: 8, padding: 16 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: PALETTE.accent, marginBottom: 6 }}>{c.title}</div>
+                  <div style={{ fontSize: 13, color: PALETTE.textMuted, lineHeight: 1.6 }}>{c.desc}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      }
+
+      const tabViews = [PipelineView, AgentsView, TokenView, AdaptersView, RAGView, ConfigView];
+
+      function App() {
+        const [tab, setTab] = useState(0);
+        const View = tabViews[tab];
+
+        return (
+          <div style={{ background: PALETTE.bg, minHeight: "100vh", fontFamily: "'Inter', system-ui, sans-serif", color: PALETTE.text }}>
+            <div style={{ borderBottom: `1px solid ${PALETTE.border}`, padding: "20px 32px 0" }}>
+              <div style={{ fontSize: 11, color: PALETTE.accent, letterSpacing: "0.14em", fontWeight: 700, textTransform: "uppercase", marginBottom: 6 }}>
+                Agentic Requirements Framework
+              </div>
+              <div style={{ fontSize: 26, fontWeight: 800, color: PALETTE.text, marginBottom: 4 }}>
+                SR → Feature → Backlog Orchestration
+              </div>
+              <div style={{ fontSize: 13, color: PALETTE.textMuted, marginBottom: 20 }}>
+                Multi-stage · Independent reviewer agents · DoorsNG / Jira / Confluence · RAG-augmented · Token-efficient
+              </div>
+              <div style={{ display: "flex", gap: 2 }}>
+                {TABS.map((t, i) => (
+                  <button key={t} onClick={() => setTab(i)} style={{
+                    background: "none", border: "none", cursor: "pointer",
+                    padding: "8px 16px",
+                    fontSize: 13, fontWeight: 600,
+                    color: tab === i ? PALETTE.accent : PALETTE.textMuted,
+                    borderBottom: `2px solid ${tab === i ? PALETTE.accent : "transparent"}`,
+                    transition: "all 0.15s",
+                  }}>{t}</button>
+                ))}
+              </div>
+            </div>
+            <div style={{ padding: "32px 32px" }}>
+              <View />
+            </div>
+          </div>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+    </script>
+  </body>
+</html>
