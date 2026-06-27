@@ -1,12 +1,17 @@
 # SW Test Report Analyzer
 
-This folder is intended to contain tooling and documentation for analyzing software test reports.
+This folder will host an agentic workflow for interpreting and analyzing software test reports.
 
-## Planned contents
-- Parsers for test execution reports
-- Analysis scripts and utilities
-- Metrics and summary generation logic
-- Guidance for interpreting test outcomes
+## Vision
+The analyzer workflow will use agents that follow automotive software development standards in general, and can be tailored to organization-specific test strategies, evidence formats, and reporting expectations.
+
+## Planned focus areas
+- Parsing and structuring test execution reports
+- Assessment of pass/fail trends and anomalies
+- Identification of gaps in verification evidence
+- Support for safety, quality, and compliance reporting
+- Customization for company-specific toolchains and reporting conventions
 
 ## How to use this folder
-Place scripts, notebooks, or documentation here when you need to process or evaluate test results from automated or manual testing activities.
+Store parsers, analysis agents, templates, and generated summaries here.
+Use this space to turn raw test evidence into structured insights that support decision-making and compliance review.

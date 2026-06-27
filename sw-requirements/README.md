@@ -1,13 +1,17 @@
 # SW Requirements
 
-This folder is intended to store software requirements and related specification artifacts.
+This folder will host an agentic requirements workflow for automotive software development.
 
-## Planned contents
-- Functional and non-functional requirements
-- Requirement traceability inputs
-- Safety and quality-related requirements
-- Review notes and requirement baselines
+## Vision
+The requirements workflow will use agents that follow automotive software development standards in general, while being configurable to organization-specific regulations, quality gates, and engineering practices.
+
+## Planned focus areas
+- Elicitation and analysis of functional and non-functional requirements
+- Safety, security, and compliance-related requirement handling
+- Requirement review and consistency checks
+- Traceability preparation for downstream design and verification
+- Adaptation to domain-specific templates and toolsets
 
 ## How to use this folder
-Add requirement documents, structured requirement sets, and supporting notes here.
-Keep this folder as the central location for source requirements that drive implementation and validation.
+Place requirement prompts, agent logic, templates, and generated requirement artifacts here.
+Use this area as the working home for structured requirements workflows that feed the wider engineering process.

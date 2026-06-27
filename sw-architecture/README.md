@@ -1,13 +1,17 @@
 # SW Architecture
 
-This folder is intended to hold software architecture artifacts for the automotive software project.
+This folder will host an agentic architecture workflow for automotive software systems.
 
-## Planned contents
-- Architecture diagrams
-- Component and subsystem definitions
-- Interface and dependency documentation
-- Design decisions and constraints
+## Vision
+The architecture workflow will be implemented with specialized agents that follow automotive software development standards in general, while remaining adaptable to organization-specific rules, regulations, and toolchains.
+
+## Planned focus areas
+- Architecture analysis and decomposition
+- Interface and dependency modeling
+- Design review and consistency checks
+- Safety, cybersecurity, and traceability considerations
+- Customization for domain-specific engineering workflows
 
 ## How to use this folder
-Place architecture-related documents, models, and diagrams here as the system design evolves.
-Use this space to keep the high-level structure of the software solution in one place.
+Store architecture prompts, agent definitions, templates, and generated artifacts here as the workflow matures.
+Use this space to capture the reasoning and outputs of architecture-focused agents in a structured way.
