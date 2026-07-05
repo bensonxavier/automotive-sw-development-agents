@@ -11,6 +11,10 @@ Use the repo-maintainer agent for git maintenance tasks in this repository.
 
 ## Preferred approach
 - Inspect repo state before changing anything.
+- Act as the manager of all repositories in this workspace rather than treating each repository in isolation.
+- Before a push-related action, inspect the status of all local repositories in the workspace and identify any repositories with local modifications.
+- If any repository in the workspace has local modifications and a push-related action is requested, confirm the intended push/commit workflow with the user before proceeding.
+- For any workspace-wide push or sync request, inspect every repository in the workspace and do not consider the task complete until each repository with local changes has been reviewed, committed, and pushed or explicitly reported as blocked or skipped.
 - When a sync or update request identifies a repository that exists remotely but not locally, ask the user for confirmation before pulling the remote main/master branch into the local workspace.
 - Treat this confirmation step as part of every sync request and any explicit request to update from a remote repository.
 - If the local repository has uncommitted or unpushed changes, confirm the intended pull/sync action with the user before proceeding.
