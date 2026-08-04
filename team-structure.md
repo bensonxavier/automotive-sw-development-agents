@@ -2,6 +2,8 @@
 
 Companion doc for [Issue #2](https://github.com/bensonxavier/automotive-sw-development-agents/issues/2). Defines the roles that oversee/operate the `requirements-to-userstories` pipeline, their responsibilities, a RACI across pipeline stages, a skill matrix, and a mapping from each role to a future agent class.
 
+This structure is intended to support a scalable, repository-driven operating model in which every team member and agent is expected to be an expert in automotive software development within their assigned role. Each role is therefore associated with explicit skills, experience expectations, and project-specific competency profiles that can be instantiated for a given repository or GitHub project.
+
 ---
 
 ## 1. Org Chart
@@ -35,6 +37,12 @@ Solid lines = delivery/reporting. Dotted lines = Line Manager oversight (capabil
 ---
 
 ## 2. Role Definitions & Responsibilities
+
+### Experience Level Expectations
+- All members of the virtual team shall be expected to be experts in automotive software development in their own role capabilities.
+- Each role shall have a defined skill profile, experience level, and evidence of competence appropriate to the project context.
+- For each project, the team instance shall be assembled from role templates and skill-definition files that are specific to that repository and its requirements.
+- At minimum, each critical role should be represented by a senior or lead-level capability for decision-making, review, and escalation, while supporting roles should have a competent practitioner profile.
 
 ### Project Manager
 - Owns overall pipeline schedule, phase gates (Phase 1–4), and cross-role coordination.
@@ -87,21 +95,46 @@ Solid lines = delivery/reporting. Dotted lines = Line Manager oversight (capabil
 
 ---
 
-## 4. Skill Matrix
+## 4. Skill Matrix & Competency Expectations
 
-| Role | Domain Knowledge | Tooling | Standards Familiarity |
-|---|---|---|---|
-| Project Manager | Program mgmt, phase-gate planning | GitHub Projects, Jira | ASPICE (process level) |
-| Product Owner | Requirements analysis, backlog prioritization | Jira, GitHub Issues | ASPICE (SYS/SWE), stakeholder mgmt |
-| Architect | System/software architecture, ADAS domain (LKA/AEB/ACC) | AUTOSAR tooling, modeling tools | ISO 26262, AUTOSAR |
-| Developer | Embedded/application software dev | Python/C, CI/CD, Git | ISO 26262 (SW unit level) |
-| Test Architect | Test strategy, risk-based test design | Traceability tools | AIAG-VDA FMEA, ISO 26262 (verification) |
-| Test Engineer | Test execution, defect triage | Test frameworks, OpenCV (for LKA fixture) | ISO 26262 (test level) |
-| Line Manager | Quality trend analysis, rubric interpretation | Rubric YAMLs, review-agent dashboards | ASPICE (assessment) |
+| Role | Experience Level Expectation | Core Automotive SW Skills | Tooling | Standards Familiarity |
+|---|---|---|---|---|
+| Project Manager | Senior/Lead-level experience in program coordination and delivery governance | Program planning, risk escalation, phase-gate control, cross-functional coordination | GitHub Projects, Jira, planning boards | ASPICE (process level) |
+| Product Owner | Senior-level experience in requirements and backlog ownership | Requirements analysis, feature prioritization, stakeholder communication, acceptance criteria definition | Jira, GitHub Issues | ASPICE (SYS/SWE), stakeholder mgmt |
+| Architect | Senior/Lead-level experience in automotive system/software design | System/software architecture, ADAS domain design, traceability to safety and architecture constraints | AUTOSAR tooling, modeling tools | ISO 26262, AUTOSAR |
+| Developer | Practitioners to senior-level, depending on complexity | Embedded/application implementation, testability-aware design, code review, traceability to stories | Python/C, CI/CD, Git | ISO 26262 (SW unit level) |
+| Test Architect | Senior-level experience in verification strategy | Risk-based test strategy, traceability design, FMEA-informed coverage planning | Traceability tools | AIAG-VDA FMEA, ISO 26262 (verification) |
+| Test Engineer | Practitioner to senior-level experience in test execution | Test case derivation, defect triage, coverage evidence, regression verification | Test frameworks, OpenCV (for LKA fixture) | ISO 26262 (test level) |
+| Line Manager | Senior-level experience in team capability management | Skill-gap analysis, rubric interpretation, performance trend monitoring, capability uplift planning | Rubric YAMLs, review-agent dashboards | ASPICE (assessment) |
+
+Each role shall have a role-specific skill-definition file that captures:
+- required competencies
+- preferred or minimum experience level
+- evidence of proficiency
+- project-relevant standards and tooling expectations
 
 ---
 
-## 5. Mapping to Future Agent Classes
+## 5. Project-Based Virtual Team Instantiation & Orchestration
+
+When a new project is established as a GitHub repository, a virtual team instance shall be created for that repository based on the project requirements and the associated issue backlog. The team instance shall include:
+- role templates for the required disciplines
+- role-specific skill-definition files
+- line-manager roles responsible for verifying and evolving those skills over time
+- orchestration logic that can plan, monitor, control, and close work through GitHub issues and repository artifacts
+
+### Orchestration Model
+1. A master orchestration agent or project manager initiates a new team instance when a repository is assigned to a project.
+2. The orchestration agent selects the required roles and loads the relevant skill-definition files for that project.
+3. Line-manager agents for each discipline define or refine the skill requirements for their roles and ensure the team instance has the capabilities needed to execute the project successfully.
+4. The virtual team is then used to plan work, monitor progress, manage issues, and close project activities as requests are raised through GitHub issues or linked repository tasks.
+5. The project manager retains overall control of planning, monitoring, and closure, while role-specific agents support execution, review, and capability oversight.
+
+This model enables the system to create a team instance dynamically for each repository-based project, with role capabilities and skill expectations tailored to that effort rather than relying on a static team composition.
+
+---
+
+## 6. Mapping to Future Agent Classes
 
 | Role | Agent Class (proposed) | Base Class | Status |
 |---|---|---|---|
@@ -117,6 +150,7 @@ Solid lines = delivery/reporting. Dotted lines = Line Manager oversight (capabil
 
 ---
 
-## 6. Open Items for Phase Follow-up
+## 7. Open Items for Phase Follow-up
 - Exact rubric fields the Line Manager agent consumes aren't defined yet — depends on how `BaseReviewer` scores are persisted today.
+- The exact schema for project-specific skill-definition files is still to be defined.
 - Whether Project Manager/Developer roles ever get partial automation (e.g. a scheduling assistant) is deferred — out of scope for this issue.
