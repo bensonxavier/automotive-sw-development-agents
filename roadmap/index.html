@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Automotive SW Agents Roadmap</title>
+    <style>
+      :root {
+        --bg: #07111b;
+        --panel: #111827;
+        --panel-2: #162132;
+        --border: #2f3e52;
+        --text: #f3f7fb;
+        --muted: #9cb0c5;
+        --accent: #2dd4bf;
+        --warm: #f59e0b;
+        --blue: #60a5fa;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        color: var(--text);
+        background: linear-gradient(135deg, var(--bg), #0f172a);
+        font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      main { max-width: 1120px; margin: 0 auto; padding: 48px 24px 80px; }
+      header { border-bottom: 1px solid var(--border); padding-bottom: 32px; }
+      .eyebrow { color: var(--accent); font-size: .78rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
+      h1 { font-size: clamp(2rem, 5vw, 3.8rem); line-height: 1.05; margin: 14px 0; max-width: 780px; }
+      .lead { color: var(--muted); font-size: 1.08rem; line-height: 1.7; max-width: 780px; }
+      nav { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+      nav a, .issue { color: var(--accent); }
+      nav a { border: 1px solid var(--border); background: var(--panel-2); padding: 10px 14px; text-decoration: none; }
+      section { margin-top: 42px; }
+      h2 { font-size: 1.45rem; margin-bottom: 10px; }
+      .section-lead { color: var(--muted); line-height: 1.6; }
+      .milestones { display: grid; gap: 16px; margin-top: 20px; }
+      .milestone { background: rgba(17, 24, 39, .92); border: 1px solid var(--border); padding: 22px; }
+      .milestone-head { align-items: baseline; display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; }
+      .milestone h3 { margin: 0; font-size: 1.12rem; }
+      .date { color: var(--warm); font-size: .9rem; font-weight: 700; }
+      .milestone p { color: var(--muted); line-height: 1.6; margin: 12px 0; }
+      ul { color: var(--muted); line-height: 1.8; margin-bottom: 0; padding-left: 20px; }
+      .status { border-left: 3px solid var(--blue); background: var(--panel-2); padding: 18px 20px; }
+      .status strong { color: var(--text); }
+      footer { color: var(--muted); border-top: 1px solid var(--border); margin-top: 48px; padding-top: 20px; }
+      @media (max-width: 650px) { main { padding: 30px 18px 56px; } .milestone-head { display: block; } .date { display: block; margin-top: 8px; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div class="eyebrow">Automotive SW Agents</div>
+        <h1>From deterministic foundations to roadmap-compliant agent teams.</h1>
+        <p class="lead">A staged realization plan for the requirements-to-userstories workflow and its shared Team Coordinator platform. The plan separates testable offline foundations from model, RAG, HITL, and GitHub automation work.</p>
+        <nav aria-label="Project navigation">
+          <a href="../">Project home</a>
+          <a href="../requirements-to-userstories/">Workflow architecture</a>
+          <a href="https://github.com/bensonxavier/automotive-sw-development-agents/projects/2">AUTO-SW-AGENTS project</a>
+        </nav>
+      </header>
+
+      <section>
+        <h2>Current position</h2>
+        <div class="status"><strong>Active:</strong> deterministic SR Reviewer baseline, issue <a class="issue" href="https://github.com/bensonxavier/automotive-sw-development-agents/issues/9">#9</a>, is in progress. The Markdown parser and SR Analyst foundation are complete. The next compliance work adds RAG boundaries, dynamic rubrics, safety checks, and bounded feedback.</div>
+      </section>
+
+      <section>
+        <h2>Milestones</h2>
+        <p class="section-lead">Targets assume a constrained free-tier budget and roughly 8–12 focused implementation sessions per month. Dates are planning targets, not deployment guarantees.</p>
+        <div class="milestones">
+          <article class="milestone">
+            <div class="milestone-head"><h3>M1 · Deterministic Offline Foundations</h3><span class="date">September 2026</span></div>
+            <p>Establish contracts and offline worker/reviewer behavior before adding external services.</p>
+            <ul><li>Completed: SR Analyst, Markdown ingestion, sample parsing, and tests.</li><li>In progress: deterministic SR Reviewer and clarification output.</li><li><a class="issue" href="https://github.com/bensonxavier/automotive-sw-development-agents/issues/6">#6</a>, <a class="issue" href="https://github.com/bensonxavier/automotive-sw-development-agents/issues/8">#8</a>, <a class="issue" href="https://github.com/bensonxavier/automotive-sw-development-agents/issues/9">#9</a></li></ul>
+          </article>
+          <article class="milestone">
+            <div class="milestone-head"><h3>M2 · Roadmap-Compliant S1 Agents</h3><span class="date">October 2026</span></div>
+            <p>Align SR Analyst and SR Reviewer with the roadmap's batch, RAG, safety, rubric, and feedback contracts.</p>
+            <ul><li>Top-5 RAG context and batches of up to 20 SRs.</li><li>Dynamic rubric scoring and safety-domain review.</li><li>Bounded Analyst–Reviewer–HITL refinement loop.</li><li><a class="issue" href="https://github.com/bensonxavier/automotive-sw-development-agents/issues/23">#23</a>, <a class="issue" href="https://github.com/bensonxavier/automotive-sw-development-agents/issues/24">#24</a>, <a class="issue" href="https://github.com/bensonxavier/automotive-sw-development-agents/issues/25">#25</a></li></ul>
+          </article>
+          <article class="milestone">
+            <div class="milestone-head"><h3>M3 · Offline Requirements-to-User-Stories Pipeline</h3><span class="date">November 2026</span></div>
+            <p>Run S0–S4 locally against the LKA fixture without Jira, GitHub, RAG, or model credentials.</p>
+            <ul><li>Ingestion and S1 orchestration.</li><li>Feature derivation and review.</li><li>Story generation, backlog review, gate review, and traceability.</li><li><a class="issue" href="https://github.com/bensonxavier/automotive-sw-development-agents/issues/10">#10</a>–<a class="issue" href="https://github.com/bensonxavier/automotive-sw-development-agents/issues/13">#13</a></li></ul>
+          </article>
+          <article class="milestone">
+            <div class="milestone-head"><h3>M4 · Team Coordinator MVP</h3><span class="date">December 2026</span></div>
+            <p>Automate issue routing, lifecycle labels, project status, approvals, reconciliation, and audit history.</p>
+            <ul><li>Contracts, state store, and Assignment Registry.</li><li>Coordinator CLI and GitHub adapter.</li><li>Webhook, poll, and LKA end-to-end validation.</li><li><a class="issue" href="https://github.com/bensonxavier/automotive-sw-development-agents/issues/14">#14</a>–<a class="issue" href="https://github.com/bensonxavier/automotive-sw-development-agents/issues/20">#20</a></li></ul>
+          </article>
+          <article class="milestone">
+            <div class="milestone-head"><h3>M5 · Roadmap-Compliant S2–S4 Agents</h3><span class="date">January 2027</span></div>
+            <p>Align feature, story, backlog, orchestrator, and gate-review agents with the published architecture.</p>
+            <ul><li>S2 feature RAG, atomicity, testability, and traceability.</li><li>S3 story templates, INVEST review, and Jira field validation.</li><li>S4 summary-only orchestration, confidence gates, and escalation.</li><li><a class="issue" href="https://github.com/bensonxavier/automotive-sw-development-agents/issues/26">#26</a>, <a class="issue" href="https://github.com/bensonxavier/automotive-sw-development-agents/issues/27">#27</a>, <a class="issue" href="https://github.com/bensonxavier/automotive-sw-development-agents/issues/28">#28</a></li></ul>
+          </article>
+        </div>
+      </section>
+
+      <section>
+        <h2>Realization sequence</h2>
+        <p class="section-lead">The sequence is deliberately incremental: prove each worker/reviewer contract offline, add roadmap-compliant context controls, complete the local pipeline, and only then automate cross-repository coordination.</p>
+      </section>
+
+      <footer>Planning view sourced from the repository roadmap and AUTO-SW-AGENTS project backlog. GitHub remains the source of truth for live issue status.</footer>
+    </main>
+  </body>
+</html>
