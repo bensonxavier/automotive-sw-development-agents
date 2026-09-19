@@ -1,0 +1,19 @@
+{
+	"requirements": [
+		{
+			"id": "SR-LKA-001",
+			"text": "The system shall detect lane boundaries when the vehicle is operating on a marked road.",
+			"source": "stakeholder-workshop-2026-09"
+		},
+		{
+			"id": "SR-LKA-002",
+			"text": "The system shall provide an appropriate warning quickly when lane departure is detected.",
+			"source": "stakeholder-workshop-2026-09"
+		},
+		{
+			"id": "SR-LKA-003",
+			"text": "The system must not apply steering assistance when the driver is not holding the wheel.",
+			"source": "safety-review-2026-09"
+		}
+	]
+}
