@@ -1,0 +1,11 @@
+name: custom-sr-review-v1
+criteria:
+  completeness: Required fields and acceptance criteria are present.
+  clarity: Requirement wording is specific and free of vague terms.
+  testability: Behavior can be verified with observable criteria.
+  traceability: Stable identifier and source reference are preserved.
+  safety: Safety-relevant requirements include measurable limits or timing.
+decisions:
+  pass: No findings remain.
+  refine: Warnings or clarification requests remain.
+  reject: One or more error-severity findings remain.
